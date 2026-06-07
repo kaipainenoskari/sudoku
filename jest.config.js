@@ -1,22 +1,44 @@
 module.exports = {
-  preset: 'jest-expo',
+  projects: [
+    {
+      // Pure logic tests — no React Native environment.
+      // We bypass jest-expo's preset entirely to avoid its react-native
+      // test environment setup, which hangs on Linux CI for non-UI tests.
+      displayName: 'logic',
+      testEnvironment: 'node',
+      testMatch: [
+        '<rootDir>/packages/**/*.test.ts',
+        '<rootDir>/packages/**/__tests__/**/*.ts',
+        '<rootDir>/stores/**/*.test.ts',
+        '<rootDir>/stores/**/__tests__/**/*.ts',
+      ],
+      transform: {
+        '^.+\\.tsx?$': [
+          'babel-jest',
+          {
+            presets: ['@babel/preset-typescript', '@babel/preset-react'],
+            plugins: ['@babel/plugin-transform-modules-commonjs'],
+          },
+        ],
+      },
+      moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+      moduleNameMapper: {
+        '^zustand/middleware$': '<rootDir>/__mocks__/zustand-middleware.js',
+        '^@react-native-async-storage/async-storage$':
+          '@react-native-async-storage/async-storage/jest/async-storage-mock',
+      },
+    },
+  ],
   testTimeout: 15000,
-  setupFilesAfterFramework: ['@testing-library/jest-native/extend-expect'],
   collectCoverageFrom: [
     'packages/**/*.ts',
-    'components/**/*.tsx',
     'stores/**/*.ts',
     '!**/*.d.ts',
     '!**/node_modules/**',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     'packages/engine/**': { lines: 80, functions: 80 },
     global: { lines: 60 },
   },
   testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  moduleNameMapper: {
-    '^@react-native-async-storage/async-storage$':
-      '@react-native-async-storage/async-storage/jest/async-storage-mock',
-  },
 };

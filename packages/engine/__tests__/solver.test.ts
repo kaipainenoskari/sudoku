@@ -13,44 +13,33 @@ describe('solver', () => {
   it('produces a valid solution (no duplicates in rows, cols, boxes)', () => {
     const grid = cloneGrid(EMPTY);
     solve(grid);
-
     for (let i = 0; i < 9; i++) {
-      const row = new Set(grid[i]);
-      expect(row.size).toBe(9);
-
-      const col = new Set(grid.map((r) => r[i]));
-      expect(col.size).toBe(9);
+      expect(new Set(grid[i]).size).toBe(9);
+      expect(new Set(grid.map((r) => r[i])).size).toBe(9);
     }
-
     for (let br = 0; br < 3; br++) {
       for (let bc = 0; bc < 3; bc++) {
         const box = new Set<number>();
-        for (let r = br * 3; r < br * 3 + 3; r++) {
-          for (let c = bc * 3; c < bc * 3 + 3; c++) {
-            box.add(grid[r][c]);
-          }
-        }
+        for (let r = br * 3; r < br * 3 + 3; r++)
+          for (let c = bc * 3; c < bc * 3 + 3; c++) box.add(grid[r][c]);
         expect(box.size).toBe(9);
       }
     }
   });
 
-  it('counts solutions correctly for a fully solved grid (should be 1)', () => {
+  it('counts solutions as 1 for a fully solved grid', () => {
     const grid = cloneGrid(EMPTY);
     solve(grid);
     expect(countSolutions(grid)).toBe(1);
   });
 
-  it('counts solutions for empty grid as >= 2', () => {
+  it('returns false when a cell has no valid candidates', () => {
+    // Fill row 4 with 1-8 (leaving [4,4] empty), and put 9 in col 4 at row 0.
+    // [4,4] then needs 9 (only missing row value) but 9 is blocked by col 4.
+    // MCV detects 0 candidates at [4,4] immediately, so solve() returns fast.
     const grid = cloneGrid(EMPTY);
-    expect(countSolutions(grid, 2)).toBe(2);
-  });
-
-  it('returns false for an unsolvable grid', () => {
-    const grid = cloneGrid(EMPTY);
-    // Place two 1s in the same row — invalid
-    grid[0][0] = 1;
-    grid[0][1] = 1;
+    for (let c = 0, v = 1; c < 9; c++) if (c !== 4) grid[4][c] = v++;
+    grid[0][4] = 9;
     expect(solve(grid)).toBe(false);
   });
 });

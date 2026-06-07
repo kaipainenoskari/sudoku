@@ -72,6 +72,7 @@ export default function GameScreen() {
 
   useEffect(() => {
     if (isComplete) {
+      if (!useGameStore.getState().isComplete) return;
       if (timerRef.current) clearInterval(timerRef.current);
       const prev = prevBestRef.current;
       const improved = prev === null || elapsedSeconds < prev;

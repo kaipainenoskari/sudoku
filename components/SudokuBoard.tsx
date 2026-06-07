@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Typography, BoardSize } from '../constants/theme';
 import { useGameStore } from '../stores/gameStore';
 
-const { cellSize, gap } = BoardSize;
+const { cellSize } = BoardSize;
 
 function isSameBox(r1: number, c1: number, r2: number, c2: number) {
   return Math.floor(r1 / 3) === Math.floor(r2 / 3) && Math.floor(c1 / 3) === Math.floor(c2 / 3);
@@ -95,8 +95,8 @@ export default function SudokuBoard() {
             const hasNotes = notes[r][c].size > 0 && val === 0;
             const cellNotes = notes[r][c];
 
-            const borderRight = (c + 1) % 3 === 0 && c !== 8;
-            const borderBottom = (r + 1) % 3 === 0 && r !== 8;
+            const isBoxTop = r % 3 === 0;
+            const isBoxLeft = c % 3 === 0;
 
             const isConflict = conflictCells.some(([cr, cc]) => cr === r && cc === c);
             const isLastCorrect =
@@ -113,16 +113,14 @@ export default function SudokuBoard() {
             else if (isMatchDigit) bgColor = C.highlightMatch;
             else if (isHighlighted) bgColor = C.highlight;
 
-            const scaleTransform = isLastCorrect ? [{ scale: popAnim }] : [];
             const translateXTransform = isConflict ? [{ translateX: shakeAnim }] : [];
-            const combinedTransform = [...scaleTransform, ...translateXTransform];
 
             return (
               <Animated.View
                 key={c}
                 style={[
                   styles.cellWrapper,
-                  combinedTransform.length > 0 ? { transform: combinedTransform } : undefined,
+                  translateXTransform.length > 0 ? { transform: translateXTransform } : undefined,
                 ]}
               >
                 <TouchableOpacity
@@ -130,20 +128,18 @@ export default function SudokuBoard() {
                     styles.cell,
                     {
                       backgroundColor: bgColor,
-                      borderColor: isSelected ? C.selectedBorder : C.border,
-                      borderWidth: isSelected ? 2 : 0.5,
-                      borderRightWidth: borderRight ? 2 : isSelected ? 2 : 0.5,
-                      borderBottomWidth: borderBottom ? 2 : isSelected ? 2 : 0.5,
-                      borderRightColor: borderRight
-                        ? C.text
-                        : isSelected
-                          ? C.selectedBorder
+                      borderTopWidth: isSelected ? 2 : isBoxTop ? 2 : 0.5,
+                      borderLeftWidth: isSelected ? 2 : isBoxLeft ? 2 : 0.5,
+                      borderRightWidth: isSelected ? 2 : c === 8 ? 2 : 0,
+                      borderBottomWidth: isSelected ? 2 : r === 8 ? 2 : 0,
+                      borderTopColor: isSelected ? C.selectedBorder : isBoxTop ? C.text : C.border,
+                      borderLeftColor: isSelected
+                        ? C.selectedBorder
+                        : isBoxLeft
+                          ? C.text
                           : C.border,
-                      borderBottomColor: borderBottom
-                        ? C.text
-                        : isSelected
-                          ? C.selectedBorder
-                          : C.border,
+                      borderRightColor: isSelected ? C.selectedBorder : C.text,
+                      borderBottomColor: isSelected ? C.selectedBorder : C.text,
                     },
                   ]}
                   onPress={() => handleCellPress(r, c)}
@@ -152,17 +148,18 @@ export default function SudokuBoard() {
                   {hasNotes ? (
                     <NoteGrid notes={cellNotes} color={C.note} />
                   ) : val !== 0 ? (
-                    <Text
+                    <Animated.Text
                       style={[
                         styles.cellText,
                         {
                           color: isError ? C.error : isGiven ? C.given : C.placed,
                           fontFamily: isGiven ? Typography.monoBold : Typography.mono,
                         },
+                        isLastCorrect ? { transform: [{ scale: popAnim }] } : undefined,
                       ]}
                     >
                       {val}
-                    </Text>
+                    </Animated.Text>
                   ) : null}
                 </TouchableOpacity>
                 {isRegionComplete && (
@@ -200,7 +197,7 @@ function NoteGrid({ notes, color }: { notes: Set<number>; color: string }) {
 
 const styles = StyleSheet.create({
   board: {
-    width: cellSize * 9 + gap * 8,
+    width: cellSize * 9,
   },
   row: {
     flexDirection: 'row',

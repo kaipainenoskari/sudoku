@@ -32,12 +32,7 @@ function startFreshGame(givenOverrides: Array<[number, number, CellValue]> = [])
 
 describe('undo history', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
     startFreshGame();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('placing a number can be undone, restoring the previous cell value', () => {

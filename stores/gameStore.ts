@@ -128,6 +128,21 @@ export const useGameStore = create<GameState>()(
         newBoard[r][c] = value;
         newNotes[r][c] = new Set();
 
+        // Remove the placed digit from notes in the same row, column, and 3x3 box
+        if (value !== 0) {
+          const boxRow = Math.floor(r / 3) * 3;
+          const boxCol = Math.floor(c / 3) * 3;
+          for (let i = 0; i < 9; i++) {
+            newNotes[r][i].delete(value); // same row
+            newNotes[i][c].delete(value); // same column
+          }
+          for (let br = boxRow; br < boxRow + 3; br++) {
+            for (let bc = boxCol; bc < boxCol + 3; bc++) {
+              newNotes[br][bc].delete(value); // same box
+            }
+          }
+        }
+
         const isCorrect = value === 0 || value === solution[r][c];
         const newMistakes =
           !isHardMode && !isCorrect && value > 0 ? get().mistakes + 1 : get().mistakes;

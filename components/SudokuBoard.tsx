@@ -41,8 +41,7 @@ export default function SudokuBoard() {
               selected !== null &&
               (selected[0] === r || selected[1] === c || isSameBox(r, c, selected[0], selected[1]));
             const isGiven = given[r][c];
-            const isError =
-              !isHardMode && val !== 0 && !isGiven && val !== solution[r][c];
+            const isError = !isHardMode && val !== 0 && !isGiven && val !== solution[r][c];
             const hasNotes = notes[r][c].size > 0 && val === 0;
 
             const cellNotes = notes[r][c];
@@ -50,7 +49,7 @@ export default function SudokuBoard() {
             const borderRight = (c + 1) % 3 === 0 && c !== 8;
             const borderBottom = (r + 1) % 3 === 0 && r !== 8;
 
-            let bgColor = C.background;
+            let bgColor: string = C.background;
             if (isSelected) bgColor = C.selected;
             else if (isHighlighted) bgColor = C.highlight;
 
@@ -65,8 +64,16 @@ export default function SudokuBoard() {
                     borderWidth: isSelected ? 2 : 0.5,
                     borderRightWidth: borderRight ? 2 : isSelected ? 2 : 0.5,
                     borderBottomWidth: borderBottom ? 2 : isSelected ? 2 : 0.5,
-                    borderRightColor: borderRight ? C.text : isSelected ? C.selectedBorder : C.border,
-                    borderBottomColor: borderBottom ? C.text : isSelected ? C.selectedBorder : C.border,
+                    borderRightColor: borderRight
+                      ? C.text
+                      : isSelected
+                        ? C.selectedBorder
+                        : C.border,
+                    borderBottomColor: borderBottom
+                      ? C.text
+                      : isSelected
+                        ? C.selectedBorder
+                        : C.border,
                   },
                 ]}
                 onPress={() => handleCellPress(r, c)}

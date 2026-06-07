@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { calculateStreak, toLocalDateString } from './streak';
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'evil';
 export type CellValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -9,9 +10,9 @@ export type Notes = Set<number>[][];
 
 interface GameState {
   // Current game
-  board: Board;           // current state (0 = empty)
+  board: Board; // current state (0 = empty)
   solution: Board;
-  given: boolean[][];     // cells that were pre-filled
+  given: boolean[][]; // cells that were pre-filled
   notes: Notes;
   selected: [number, number] | null;
   isHardMode: boolean;
@@ -40,7 +41,8 @@ interface GameState {
 }
 
 const emptyBoard = (): Board => Array.from({ length: 9 }, () => Array(9).fill(0) as CellValue[]);
-const emptyNotes = (): Notes => Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set<number>()));
+const emptyNotes = (): Notes =>
+  Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set<number>()));
 const emptyGiven = (): boolean[][] => Array.from({ length: 9 }, () => Array(9).fill(false));
 
 export const useGameStore = create<GameState>()(
@@ -69,7 +71,17 @@ export const useGameStore = create<GameState>()(
       toggleNotesMode: () => set((s) => ({ isNotesMode: !s.isNotesMode })),
 
       placeNumber: (value) => {
-        const { selected, board, given, solution, notes, isHardMode, difficulty, elapsedSeconds, bestTimes } = get();
+        const {
+          selected,
+          board,
+          given,
+          solution,
+          notes,
+          isHardMode,
+          difficulty,
+          elapsedSeconds,
+          bestTimes,
+        } = get();
         if (!selected) return;
         const [r, c] = selected;
         if (given[r][c]) return;
@@ -81,11 +93,12 @@ export const useGameStore = create<GameState>()(
         newNotes[r][c] = new Set();
 
         const isCorrect = value === 0 || value === solution[r][c];
-        const newMistakes = (!isHardMode && !isCorrect && value !== 0) ? get().mistakes + 1 : get().mistakes;
+        const newMistakes =
+          !isHardMode && !isCorrect && value > 0 ? get().mistakes + 1 : get().mistakes;
 
-        const isComplete = value !== 0 && newBoard.every((row, ri) =>
-          row.every((cell, ci) => cell === solution[ri][ci])
-        );
+        const isComplete =
+          value > 0 &&
+          newBoard.every((row, ri) => row.every((cell, ci) => cell === solution[ri][ci]));
 
         let newBestTimes = bestTimes;
         if (isComplete) {
@@ -95,6 +108,10 @@ export const useGameStore = create<GameState>()(
           }
         }
 
+        const { streak, lastPlayedDate: newLastPlayedDate } = isComplete
+          ? calculateStreak(get().lastPlayedDate, get().streak, toLocalDateString(new Date()))
+          : { streak: get().streak, lastPlayedDate: get().lastPlayedDate };
+
         set({
           board: newBoard,
           notes: newNotes,
@@ -102,6 +119,8 @@ export const useGameStore = create<GameState>()(
           isComplete,
           bestTimes: newBestTimes,
           totalSolves: isComplete ? get().totalSolves + 1 : get().totalSolves,
+          streak,
+          lastPlayedDate: newLastPlayedDate ?? get().lastPlayedDate,
         });
       },
 

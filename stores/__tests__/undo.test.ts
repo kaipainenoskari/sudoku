@@ -69,6 +69,23 @@ describe('undo history', () => {
     expect(boardAfter).toEqual(boardBefore);
   });
 
+  it('undo restores notes that were cleared when a digit was placed', () => {
+    const store = useGameStore.getState();
+    // Toggle note 3 in cell [0,0]
+    store.setSelected([0, 0]);
+    store.toggleNote(3);
+    expect(useGameStore.getState().notes[0][0].has(3)).toBe(true);
+
+    // Place a digit — this clears the notes for that cell
+    useGameStore.getState().placeNumber(5 as CellValue);
+    expect(useGameStore.getState().notes[0][0].size).toBe(0);
+
+    // Undo — the note should be restored
+    useGameStore.getState().undo();
+    expect(useGameStore.getState().notes[0][0].has(3)).toBe(true);
+    expect(useGameStore.getState().board[0][0]).toBe(0);
+  });
+
   it('newGame clears the undo history', () => {
     // Make a move, then start a new game, then undo should be a no-op
     const store = useGameStore.getState();

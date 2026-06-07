@@ -8,10 +8,28 @@ export type CellValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type Board = CellValue[][];
 export type Notes = Set<number>[][];
 
+function deriveCompletedDigits(board: Board, solution: Board): Set<number> {
+  const counts = new Map<number, number>();
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const v = board[r][c];
+      if (v > 0 && v === solution[r][c]) {
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+      }
+    }
+  }
+  const completed = new Set<number>();
+  counts.forEach((count, digit) => {
+    if (count === 9) completed.add(digit);
+  });
+  return completed;
+}
+
 interface UndoMove {
   row: number;
   col: number;
   previousValue: CellValue;
+  previousNotes: Notes;
 }
 
 interface GameState {
@@ -29,6 +47,8 @@ interface GameState {
   mistakes: number;
   isComplete: boolean;
   history: UndoMove[]; // session-only undo stack
+  conflictCells: Array<[number, number]>;
+  completedDigits: Set<number>;
 
   // Stats
   streak: number;
@@ -68,6 +88,8 @@ export const useGameStore = create<GameState>()(
       mistakes: 0,
       isComplete: false,
       history: [],
+      conflictCells: [],
+      completedDigits: new Set<number>(),
 
       streak: 0,
       lastPlayedDate: null,
@@ -95,9 +117,10 @@ export const useGameStore = create<GameState>()(
         const [r, c] = selected;
         if (given[r][c]) return;
 
-        // Push current cell value onto undo stack before overwriting
+        // Push current cell value and notes snapshot onto undo stack before overwriting
         const previousValue = board[r][c];
-        const newHistory = [...history, { row: r, col: c, previousValue }];
+        const previousNotes = notes.map((row) => row.map((cell) => new Set(cell)));
+        const newHistory = [...history, { row: r, col: c, previousValue, previousNotes }];
 
         const newBoard = board.map((row) => [...row]) as Board;
         const newNotes = notes.map((row) => row.map((cell) => new Set(cell)));
@@ -125,6 +148,25 @@ export const useGameStore = create<GameState>()(
           ? calculateStreak(get().lastPlayedDate, get().streak, toLocalDateString(new Date()))
           : { streak: get().streak, lastPlayedDate: get().lastPlayedDate };
 
+        // Detect conflict cells (non-hard mode only)
+        const newConflictCells: Array<[number, number]> = [];
+        if (!isHardMode && value > 0 && !isCorrect) {
+          for (let i = 0; i < 9; i++) {
+            if (i !== c && newBoard[r][i] === value) newConflictCells.push([r, i]);
+            if (i !== r && newBoard[i][c] === value) newConflictCells.push([i, c]);
+          }
+          const br = Math.floor(r / 3) * 3;
+          const bc = Math.floor(c / 3) * 3;
+          for (let ri = br; ri < br + 3; ri++) {
+            for (let ci = bc; ci < bc + 3; ci++) {
+              if ((ri !== r || ci !== c) && newBoard[ri][ci] === value) {
+                newConflictCells.push([ri, ci]);
+              }
+            }
+          }
+          newConflictCells.push([r, c]);
+        }
+
         set({
           board: newBoard,
           notes: newNotes,
@@ -135,7 +177,13 @@ export const useGameStore = create<GameState>()(
           streak,
           lastPlayedDate: newLastPlayedDate ?? get().lastPlayedDate,
           history: newHistory,
+          conflictCells: newConflictCells,
+          completedDigits: deriveCompletedDigits(newBoard, solution),
         });
+
+        if (newConflictCells.length > 0) {
+          setTimeout(() => set({ conflictCells: [] }), 800);
+        }
       },
 
       toggleNote: (value) => {
@@ -154,13 +202,18 @@ export const useGameStore = create<GameState>()(
       },
 
       undo: () => {
-        const { history, board } = get();
+        const { history, board, solution } = get();
         if (history.length === 0) return;
         const newHistory = [...history];
         const move = newHistory.pop()!;
         const newBoard = board.map((row) => [...row]) as Board;
         newBoard[move.row][move.col] = move.previousValue;
-        set({ board: newBoard, history: newHistory });
+        set({
+          board: newBoard,
+          notes: move.previousNotes,
+          history: newHistory,
+          completedDigits: deriveCompletedDigits(newBoard, solution),
+        });
       },
 
       newGame: (board, solution, difficulty) => {
@@ -178,6 +231,7 @@ export const useGameStore = create<GameState>()(
           mistakes: 0,
           isComplete: false,
           history: [],
+          completedDigits: new Set<number>(),
         });
       },
 

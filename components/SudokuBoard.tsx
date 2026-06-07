@@ -20,6 +20,7 @@ export default function SudokuBoard() {
   const notes = useGameStore((s) => s.notes);
   const selected = useGameStore((s) => s.selected);
   const isHardMode = useGameStore((s) => s.isHardMode);
+  const conflictCells = useGameStore((s) => s.conflictCells);
   const setSelected = useGameStore((s) => s.setSelected);
 
   const handleCellPress = useCallback(
@@ -49,8 +50,15 @@ export default function SudokuBoard() {
             const borderRight = (c + 1) % 3 === 0 && c !== 8;
             const borderBottom = (r + 1) % 3 === 0 && r !== 8;
 
+            const isConflict = conflictCells.some(([cr, cc]) => cr === r && cc === c);
+            const selectedVal = selected !== null ? board[selected[0]][selected[1]] : 0;
+            const isMatchDigit =
+              !isSelected && selected !== null && val !== 0 && val === selectedVal;
+
             let bgColor: string = C.background;
             if (isSelected) bgColor = C.selected;
+            else if (isConflict) bgColor = 'rgba(239,68,68,0.25)';
+            else if (isMatchDigit) bgColor = C.highlightMatch;
             else if (isHighlighted) bgColor = C.highlight;
 
             return (

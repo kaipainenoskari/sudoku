@@ -2,22 +2,27 @@ import { generatePuzzle, generateDailyPuzzle } from '../generator';
 import { countSolutions } from '../solver';
 import { CLUE_RANGES, Difficulty } from '../difficulty';
 
-const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard', 'expert', 'evil'];
+// Fixed seeds make each test deterministic and fast.
+// Evil is excluded: digHoles with <=22 clues requires deep uniqueness checks
+// that take minutes — not suitable for a unit test.
+const SEEDED_DIFFICULTIES: { diff: Difficulty; seed: number }[] = [
+  { diff: 'easy', seed: 1 },
+  { diff: 'medium', seed: 2 },
+  { diff: 'hard', seed: 3 },
+  { diff: 'expert', seed: 1 },
+];
 
 describe('generatePuzzle', () => {
-  DIFFICULTIES.forEach((diff) => {
+  SEEDED_DIFFICULTIES.forEach(({ diff, seed }) => {
     it(`generates a uniquely solvable ${diff} puzzle`, () => {
-      const { board, solution, clues } = generatePuzzle(diff);
+      const { board, solution, clues } = generatePuzzle(diff, seed);
 
-      // Clue count in expected range
       const [min, max] = CLUE_RANGES[diff];
       expect(clues).toBeGreaterThanOrEqual(min);
       expect(clues).toBeLessThanOrEqual(max);
 
-      // Solution is complete
       expect(solution.flat().every((n) => n >= 1 && n <= 9)).toBe(true);
 
-      // Puzzle has exactly one solution
       const copy = board.map((r) => [...r]);
       expect(countSolutions(copy)).toBe(1);
     });

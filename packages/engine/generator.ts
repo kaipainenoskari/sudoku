@@ -41,24 +41,9 @@ function digHoles(solution: Grid, targetClues: number): Grid {
 }
 
 export function generatePuzzle(difficulty: Difficulty, seed?: number): Puzzle {
-  const [minClues, maxClues] = CLUE_RANGES[difficulty];
-  // For non-seeded puzzles retry with a fresh grid if the clue range can't be hit.
-  // For seeded (daily) puzzles the grid is fixed, so one attempt only.
-  const maxAttempts = seed !== undefined ? 1 : 10;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const solution = generateFullGrid(seed);
-    const targetClues = minClues + Math.floor(_random() * (maxClues - minClues + 1));
-    const board = digHoles(cloneGrid(solution), targetClues);
-    const actualClues = board.flat().filter((c) => c !== 0).length;
-    if (actualClues <= maxClues) {
-      return { board, solution, difficulty, clues: actualClues };
-    }
-  }
-
-  // Seeded fallback: return best effort (clues may exceed range)
   const solution = generateFullGrid(seed);
-  const targetClues = minClues;
+  const [minClues, maxClues] = CLUE_RANGES[difficulty];
+  const targetClues = minClues + Math.floor(_random() * (maxClues - minClues + 1));
   const board = digHoles(cloneGrid(solution), targetClues);
   const actualClues = board.flat().filter((c) => c !== 0).length;
   return { board, solution, difficulty, clues: actualClues };

@@ -2,8 +2,8 @@ import { Grid, cloneGrid, solve, countSolutions } from './solver';
 import { Difficulty, CLUE_RANGES } from './difficulty';
 
 export interface Puzzle {
-  board: Grid;     // puzzle (0 = empty)
-  solution: Grid;  // complete solution
+  board: Grid; // puzzle (0 = empty)
+  solution: Grid; // complete solution
   difficulty: Difficulty;
   clues: number;
 }
@@ -12,7 +12,7 @@ function generateFullGrid(seed?: number): Grid {
   const grid: Grid = Array.from({ length: 9 }, () => Array(9).fill(0));
   // Seed the RNG if provided (for Daily Puzzle reproducibility)
   if (seed !== undefined) seedRandom(seed);
-  solve(grid, true);
+  solve(grid, true, _random);
   return grid;
 }
 
@@ -43,10 +43,9 @@ function digHoles(solution: Grid, targetClues: number): Grid {
 export function generatePuzzle(difficulty: Difficulty, seed?: number): Puzzle {
   const solution = generateFullGrid(seed);
   const [minClues, maxClues] = CLUE_RANGES[difficulty];
-  const targetClues = minClues + Math.floor(Math.random() * (maxClues - minClues + 1));
+  const targetClues = minClues + Math.floor(_random() * (maxClues - minClues + 1));
   const board = digHoles(cloneGrid(solution), targetClues);
   const actualClues = board.flat().filter((c) => c !== 0).length;
-
   return { board, solution, difficulty, clues: actualClues };
 }
 
@@ -58,7 +57,7 @@ function seedRandom(seed: number): void {
 }
 function seededRandom(): number {
   _seed = (_seed * 1664525 + 1013904223) & 0xffffffff;
-  return ((_seed >>> 0) / 0x100000000);
+  return (_seed >>> 0) / 0x100000000;
 }
 let _random: () => number = Math.random;
 
@@ -71,10 +70,7 @@ function shuffle(arr: number[]): void {
 
 export function generateDailyPuzzle(date: Date): Puzzle {
   // Convert date to a stable integer seed
-  const seed =
-    date.getFullYear() * 10000 +
-    (date.getMonth() + 1) * 100 +
-    date.getDate();
+  const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
   // Daily is always 'hard' difficulty
   return generatePuzzle('hard', seed);
 }

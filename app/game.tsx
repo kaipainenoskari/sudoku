@@ -1,22 +1,20 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  useColorScheme,
-  Alert,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { Colors, Typography, Spacing } from '../constants/theme';
-import { useGameStore } from '../stores/gameStore';
+import { useGameStore, Board } from '../stores/gameStore';
 import { generatePuzzle, generateDailyPuzzle, Difficulty } from '../packages/engine';
 import SudokuBoard from '../components/SudokuBoard';
 import NumberPad from '../components/NumberPad';
+import ResultModal from '../components/ResultModal';
+import SolveWave from '../components/SolveWave';
 
 function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
@@ -33,31 +31,76 @@ export default function GameScreen() {
   const mistakes = useGameStore((s) => s.mistakes);
   const isComplete = useGameStore((s) => s.isComplete);
   const isHardMode = useGameStore((s) => s.isHardMode);
+  const streak = useGameStore((s) => s.streak);
+  const bestTimes = useGameStore((s) => s.bestTimes);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isNewBest, setIsNewBest] = useState(false);
+  const [showWave, setShowWave] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
+  const confettiRef = useRef<ConfettiCannon>(null);
+  const prevBestRef = useRef<number | null>(null);
+
+  const startPuzzle = () => {
     const isDaily = difficulty === 'daily';
     const puzzle = isDaily
       ? generateDailyPuzzle(new Date())
       : generatePuzzle((difficulty as Difficulty) ?? 'medium');
 
-    newGame(puzzle.board as any, puzzle.solution as any, puzzle.difficulty);
+    setIsNewBest(false);
+    setShowWave(false);
+    setShowModal(false);
 
+    if (!isDaily) {
+      const diff = (difficulty as Difficulty) ?? 'medium';
+      prevBestRef.current = bestTimes[diff];
+    } else {
+      prevBestRef.current = null;
+    }
+
+    newGame(puzzle.board as Board, puzzle.solution as Board, puzzle.difficulty);
+  };
+
+  useEffect(() => {
+    startPuzzle();
     timerRef.current = setInterval(() => tick(), 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   useEffect(() => {
     if (isComplete) {
+      if (!useGameStore.getState().isComplete) return;
       if (timerRef.current) clearInterval(timerRef.current);
-      Alert.alert(
-        'Solved!',
-        `Time: ${formatTime(elapsedSeconds)}${!isHardMode ? `\nMistakes: ${mistakes}` : ''}`,
-        [{ text: 'Back to Menu', onPress: () => router.back() }]
-      );
+      const prev = prevBestRef.current;
+      const improved = prev === null || elapsedSeconds < prev;
+      setIsNewBest(improved);
+      setShowWave(true);
     }
   }, [isComplete]);
+
+  const handleWaveComplete = () => {
+    setShowWave(false);
+    if (isNewBest) {
+      confettiRef.current?.start();
+    }
+    // Short delay so confetti is visible before modal
+    setTimeout(() => {
+      setShowModal(true);
+    }, 600);
+  };
+
+  const handlePlayAgain = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    startPuzzle();
+    timerRef.current = setInterval(() => tick(), 1000);
+  };
+
+  const handleMenu = () => {
+    router.back();
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: C.background }]}>
@@ -71,7 +114,12 @@ export default function GameScreen() {
           {formatTime(elapsedSeconds)}
         </Text>
         {!isHardMode && (
-          <Text style={[styles.mistakes, { color: mistakes > 0 ? C.error : C.textMuted, fontFamily: Typography.mono }]}>
+          <Text
+            style={[
+              styles.mistakes,
+              { color: mistakes > 0 ? C.error : C.textMuted, fontFamily: Typography.mono },
+            ]}
+          >
             {mistakes} err
           </Text>
         )}
@@ -84,9 +132,29 @@ export default function GameScreen() {
 
       <View style={styles.boardContainer}>
         <SudokuBoard />
+        <SolveWave visible={showWave} onComplete={handleWaveComplete} />
       </View>
 
       <NumberPad />
+
+      <ConfettiCannon
+        ref={confettiRef}
+        count={150}
+        origin={{ x: -10, y: 0 }}
+        autoStart={false}
+        fadeOut
+      />
+
+      <ResultModal
+        visible={showModal}
+        elapsedSeconds={elapsedSeconds}
+        mistakes={mistakes}
+        isHardMode={isHardMode}
+        isNewBest={isNewBest}
+        streak={streak}
+        onPlayAgain={handlePlayAgain}
+        onMenu={handleMenu}
+      />
     </SafeAreaView>
   );
 }

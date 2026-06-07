@@ -6,15 +6,16 @@ export const Colors = {
     border: '#2A2A2F',
     text: '#F4F4F5',
     textMuted: '#71717A',
-    accent: '#6366F1',       // indigo — brand colour
+    accent: '#6366F1', // indigo — brand colour
     accentDim: '#312E81',
-    given: '#F4F4F5',        // pre-filled digits
-    placed: '#A5B4FC',       // player-placed digits
+    given: '#F4F4F5', // pre-filled digits
+    placed: '#A5B4FC', // player-placed digits
     note: '#71717A',
     error: '#EF4444',
     selected: '#1E1E3A',
     selectedBorder: '#6366F1',
-    highlight: '#1A1A2E',    // same row/col/box as selected
+    highlight: '#1A1A2E', // same row/col/box as selected
+    highlightMatch: '#1A2A3A', // same digit as selected
     success: '#22C55E',
   },
   light: {
@@ -33,6 +34,7 @@ export const Colors = {
     selected: '#EEF2FF',
     selectedBorder: '#4F46E5',
     highlight: '#F5F5FF',
+    highlightMatch: '#E8F0FF', // same digit as selected
     success: '#16A34A',
   },
 } as const;

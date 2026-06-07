@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import { useGameStore } from '../stores/gameStore';
@@ -14,13 +14,32 @@ export default function NumberPad() {
   const toggleNote = useGameStore((s) => s.toggleNote);
   const toggleNotesMode = useGameStore((s) => s.toggleNotesMode);
   const undo = useGameStore((s) => s.undo);
+  const completedDigits = useGameStore((s) => s.completedDigits);
+
+  const completedKey = Array.from(completedDigits).sort().join(',');
+
+  const opacityRefs = useRef<Animated.Value[]>(
+    Array.from({ length: 9 }, () => new Animated.Value(1))
+  );
+
+  useEffect(() => {
+    const completed = new Set(completedKey ? completedKey.split(',').map(Number) : []);
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach((n) => {
+      const target = completed.has(n) ? 0.3 : 1;
+      Animated.timing(opacityRefs.current[n - 1], {
+        toValue: target,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [completedKey]);
 
   const handleNumber = (n: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isNotesMode && !isHardMode) {
       toggleNote(n);
     } else {
-      placeNumber(n as any);
+      placeNumber(n as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9);
     }
   };
 
@@ -43,26 +62,45 @@ export default function NumberPad() {
         <ActionButton label="Erase" onPress={handleErase} color={C.textMuted} />
       </View>
       <View style={styles.grid}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-          <TouchableOpacity
-            key={n}
-            style={[styles.numButton, { backgroundColor: C.surface, borderColor: C.border }]}
-            onPress={() => handleNumber(n)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.numText, { color: C.text, fontFamily: Typography.monoBold }]}>
-              {n}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
+          const isDimmed = completedDigits.has(n);
+          return (
+            <TouchableOpacity
+              key={n}
+              style={[styles.numButton, { backgroundColor: C.surface, borderColor: C.border }]}
+              onPress={() => handleNumber(n)}
+              activeOpacity={0.7}
+            >
+              <Animated.Text
+                style={[
+                  styles.numText,
+                  {
+                    color: isDimmed ? C.textMuted : C.text,
+                    fontFamily: Typography.monoBold,
+                    opacity: opacityRefs.current[n - 1],
+                  },
+                ]}
+              >
+                {n}
+              </Animated.Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
 }
 
-function ActionButton({ label, onPress, color }: { label: string; onPress: () => void; color: string }) {
-  const scheme = useColorScheme() ?? 'dark';
-  const C = Colors[scheme];
+function ActionButton({
+  label,
+  onPress,
+  color,
+}: {
+  label: string;
+  onPress: () => void;
+  color: string;
+}) {
+  useColorScheme();
   return (
     <TouchableOpacity onPress={onPress} style={styles.actionButton} activeOpacity={0.7}>
       <Text style={[styles.actionText, { color, fontFamily: Typography.mono }]}>{label}</Text>

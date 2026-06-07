@@ -1,0 +1,50 @@
+import { generatePuzzle, generateDailyPuzzle } from '../generator';
+import { countSolutions } from '../solver';
+import { CLUE_RANGES, Difficulty } from '../difficulty';
+
+// Fixed seeds make each test deterministic and fast.
+const SEEDED_DIFFICULTIES: { diff: Difficulty; seed: number }[] = [
+  { diff: 'easy', seed: 1 },
+  { diff: 'medium', seed: 2 },
+  { diff: 'hard', seed: 3 },
+  { diff: 'expert', seed: 1 },
+  { diff: 'evil', seed: 5 },
+];
+
+describe('generatePuzzle', () => {
+  SEEDED_DIFFICULTIES.forEach(({ diff, seed }) => {
+    it(`generates a uniquely solvable ${diff} puzzle`, () => {
+      const { board, solution, clues } = generatePuzzle(diff, seed);
+
+      const [min, max] = CLUE_RANGES[diff];
+      expect(clues).toBeGreaterThanOrEqual(min);
+      expect(clues).toBeLessThanOrEqual(max);
+
+      expect(solution.flat().every((n) => n >= 1 && n <= 9)).toBe(true);
+
+      const copy = board.map((r) => [...r]);
+      expect(countSolutions(copy)).toBe(1);
+    });
+  });
+});
+
+describe('generateDailyPuzzle', () => {
+  it('returns the same puzzle for the same date', () => {
+    const date = new Date('2026-06-07');
+    const a = generateDailyPuzzle(date);
+    const b = generateDailyPuzzle(date);
+    expect(a.board).toEqual(b.board);
+    expect(a.solution).toEqual(b.solution);
+  });
+
+  it('returns different puzzles for different dates', () => {
+    const a = generateDailyPuzzle(new Date('2026-06-07'));
+    const b = generateDailyPuzzle(new Date('2026-06-08'));
+    expect(a.board).not.toEqual(b.board);
+  });
+
+  it('generates a hard difficulty puzzle', () => {
+    const { difficulty } = generateDailyPuzzle(new Date());
+    expect(difficulty).toBe('hard');
+  });
+});

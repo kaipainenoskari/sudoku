@@ -40,6 +40,37 @@ function findEmpty(grid: Grid): [number, number] | null {
   return best;
 }
 
+// Fills all naked singles (cells with exactly one candidate) in-place.
+// Returns the list of cells filled so the caller can undo them,
+// or null if a contradiction is found (a cell has zero candidates).
+function propagate(grid: Grid): Array<[number, number]> | null {
+  const filled: Array<[number, number]> = [];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (grid[r][c] !== 0) continue;
+        let candidates = 0;
+        let lastNum = 0;
+        for (let n = 1; n <= 9; n++) {
+          if (isValid(grid, r, c, n)) {
+            candidates++;
+            lastNum = n;
+          }
+        }
+        if (candidates === 0) return null;
+        if (candidates === 1) {
+          grid[r][c] = lastNum;
+          filled.push([r, c]);
+          changed = true;
+        }
+      }
+    }
+  }
+  return filled;
+}
+
 export function solve(grid: Grid, randomise = false, rng: () => number = Math.random): boolean {
   const cell = findEmpty(grid);
   if (!cell) return true; // solved
@@ -58,21 +89,33 @@ export function solve(grid: Grid, randomise = false, rng: () => number = Math.ra
   return false;
 }
 
-// Returns number of solutions (stops at 2 — we only need to know if unique)
+// Returns number of solutions (stops at limit — we only need to know if unique).
+// Uses naked-singles propagation before each branch to shrink the search space.
 export function countSolutions(grid: Grid, limit = 2): number {
-  const cell = findEmpty(grid);
-  if (!cell) return 1;
+  const filled = propagate(grid);
+  if (filled === null) {
+    return 0; // contradiction
+  }
 
-  const [row, col] = cell;
+  const cell = findEmpty(grid);
   let count = 0;
-  for (let num = 1; num <= 9; num++) {
-    if (isValid(grid, row, col, num)) {
-      grid[row][col] = num;
-      count += countSolutions(grid, limit);
-      grid[row][col] = 0;
-      if (count >= limit) return count;
+
+  if (!cell) {
+    count = 1; // solved
+  } else {
+    const [row, col] = cell;
+    for (let num = 1; num <= 9; num++) {
+      if (isValid(grid, row, col, num)) {
+        grid[row][col] = num;
+        count += countSolutions(grid, limit);
+        grid[row][col] = 0;
+        if (count >= limit) break;
+      }
     }
   }
+
+  // Undo propagation so the caller's grid is unchanged
+  for (const [r, c] of filled) grid[r][c] = 0;
   return count;
 }
 

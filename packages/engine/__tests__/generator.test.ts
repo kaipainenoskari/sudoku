@@ -3,13 +3,12 @@ import { countSolutions } from '../solver';
 import { CLUE_RANGES, Difficulty } from '../difficulty';
 
 // Fixed seeds make each test deterministic and fast.
-// Evil is excluded: digHoles with <=22 clues requires deep uniqueness checks
-// that take minutes — not suitable for a unit test.
 const SEEDED_DIFFICULTIES: { diff: Difficulty; seed: number }[] = [
   { diff: 'easy', seed: 1 },
   { diff: 'medium', seed: 2 },
   { diff: 'hard', seed: 3 },
   { diff: 'expert', seed: 1 },
+  { diff: 'evil', seed: 5 },
 ];
 
 describe('generatePuzzle', () => {

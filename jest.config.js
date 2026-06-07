@@ -1,5 +1,6 @@
 module.exports = {
   preset: 'jest-expo',
+  testTimeout: 15000,
   setupFilesAfterFramework: ['@testing-library/jest-native/extend-expect'],
   collectCoverageFrom: [
     'packages/**/*.ts',

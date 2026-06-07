@@ -32,9 +32,7 @@ export default function HomeScreen() {
         onPress={startDaily}
         activeOpacity={0.85}
       >
-        <Text style={[styles.dailyText, { fontFamily: Typography.monoBold }]}>
-          Daily Puzzle
-        </Text>
+        <Text style={[styles.dailyText, { fontFamily: Typography.monoBold }]}>Daily Puzzle</Text>
       </TouchableOpacity>
 
       <View style={styles.dividerRow}>
@@ -59,6 +57,16 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      <TouchableOpacity
+        style={styles.statsButton}
+        onPress={() => router.push('/stats')}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.statsText, { color: C.textMuted, fontFamily: Typography.mono }]}>
+          Stats
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -117,5 +125,12 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 15,
+  },
+  statsButton: {
+    marginTop: Spacing.lg,
+    padding: Spacing.sm,
+  },
+  statsText: {
+    fontSize: 14,
   },
 });

@@ -8,6 +8,12 @@ export type CellValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type Board = CellValue[][];
 export type Notes = Set<number>[][];
 
+interface UndoMove {
+  row: number;
+  col: number;
+  previousValue: CellValue;
+}
+
 interface GameState {
   // Current game
   board: Board; // current state (0 = empty)
@@ -22,6 +28,7 @@ interface GameState {
   elapsedSeconds: number;
   mistakes: number;
   isComplete: boolean;
+  history: UndoMove[]; // session-only undo stack
 
   // Stats
   streak: number;
@@ -60,6 +67,7 @@ export const useGameStore = create<GameState>()(
       elapsedSeconds: 0,
       mistakes: 0,
       isComplete: false,
+      history: [],
 
       streak: 0,
       lastPlayedDate: null,
@@ -81,10 +89,15 @@ export const useGameStore = create<GameState>()(
           difficulty,
           elapsedSeconds,
           bestTimes,
+          history,
         } = get();
         if (!selected) return;
         const [r, c] = selected;
         if (given[r][c]) return;
+
+        // Push current cell value onto undo stack before overwriting
+        const previousValue = board[r][c];
+        const newHistory = [...history, { row: r, col: c, previousValue }];
 
         const newBoard = board.map((row) => [...row]) as Board;
         const newNotes = notes.map((row) => row.map((cell) => new Set(cell)));
@@ -121,6 +134,7 @@ export const useGameStore = create<GameState>()(
           totalSolves: isComplete ? get().totalSolves + 1 : get().totalSolves,
           streak,
           lastPlayedDate: newLastPlayedDate ?? get().lastPlayedDate,
+          history: newHistory,
         });
       },
 
@@ -140,7 +154,13 @@ export const useGameStore = create<GameState>()(
       },
 
       undo: () => {
-        // TODO: implement undo history in next pass
+        const { history, board } = get();
+        if (history.length === 0) return;
+        const newHistory = [...history];
+        const move = newHistory.pop()!;
+        const newBoard = board.map((row) => [...row]) as Board;
+        newBoard[move.row][move.col] = move.previousValue;
+        set({ board: newBoard, history: newHistory });
       },
 
       newGame: (board, solution, difficulty) => {
@@ -157,6 +177,7 @@ export const useGameStore = create<GameState>()(
           elapsedSeconds: 0,
           mistakes: 0,
           isComplete: false,
+          history: [],
         });
       },
 

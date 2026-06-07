@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing } from '../constants/theme';
@@ -7,6 +7,7 @@ import { useGameStore, Board } from '../stores/gameStore';
 import { generatePuzzle, generateDailyPuzzle, Difficulty } from '../packages/engine';
 import SudokuBoard from '../components/SudokuBoard';
 import NumberPad from '../components/NumberPad';
+import ResultModal from '../components/ResultModal';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -28,17 +29,38 @@ export default function GameScreen() {
   const mistakes = useGameStore((s) => s.mistakes);
   const isComplete = useGameStore((s) => s.isComplete);
   const isHardMode = useGameStore((s) => s.isHardMode);
+  const streak = useGameStore((s) => s.streak);
+  const bestTimes = useGameStore((s) => s.bestTimes);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isNewBest, setIsNewBest] = useState(false);
 
-  useEffect(() => {
+  const startPuzzle = () => {
     const isDaily = difficulty === 'daily';
     const puzzle = isDaily
       ? generateDailyPuzzle(new Date())
       : generatePuzzle((difficulty as Difficulty) ?? 'medium');
 
-    newGame(puzzle.board as Board, puzzle.solution as Board, puzzle.difficulty);
+    // Check previous best before starting new game
+    if (!isDaily) {
+      const diff = (difficulty as Difficulty) ?? 'medium';
+      const prev = bestTimes[diff];
+      // isNewBest will be set when isComplete becomes true
+      setIsNewBest(false);
+      // Store prev best so we can compare after solve
+      prevBestRef.current = prev;
+    } else {
+      prevBestRef.current = null;
+      setIsNewBest(false);
+    }
 
+    newGame(puzzle.board as Board, puzzle.solution as Board, puzzle.difficulty);
+  };
+
+  const prevBestRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    startPuzzle();
     timerRef.current = setInterval(() => tick(), 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -48,13 +70,22 @@ export default function GameScreen() {
   useEffect(() => {
     if (isComplete) {
       if (timerRef.current) clearInterval(timerRef.current);
-      Alert.alert(
-        'Solved!',
-        `Time: ${formatTime(elapsedSeconds)}${!isHardMode ? `\nMistakes: ${mistakes}` : ''}`,
-        [{ text: 'Back to Menu', onPress: () => router.back() }]
-      );
+      // Determine if this is a new best
+      const prev = prevBestRef.current;
+      const improved = prev === null || elapsedSeconds < prev;
+      setIsNewBest(improved);
     }
   }, [isComplete]);
+
+  const handlePlayAgain = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    startPuzzle();
+    timerRef.current = setInterval(() => tick(), 1000);
+  };
+
+  const handleMenu = () => {
+    router.back();
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: C.background }]}>
@@ -89,6 +120,17 @@ export default function GameScreen() {
       </View>
 
       <NumberPad />
+
+      <ResultModal
+        visible={isComplete}
+        elapsedSeconds={elapsedSeconds}
+        mistakes={mistakes}
+        isHardMode={isHardMode}
+        isNewBest={isNewBest}
+        streak={streak}
+        onPlayAgain={handlePlayAgain}
+        onMenu={handleMenu}
+      />
     </SafeAreaView>
   );
 }

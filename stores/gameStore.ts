@@ -8,6 +8,48 @@ export type CellValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type Board = CellValue[][];
 export type Notes = Set<number>[][];
 
+function deriveCompletedRegionCells(
+  board: Board,
+  solution: Board,
+  r: number,
+  c: number
+): Array<[number, number]> {
+  const cells: Array<[number, number]> = [];
+
+  // Check row
+  const rowComplete = board[r].every((v, ci) => v !== 0 && v === solution[r][ci]);
+  if (rowComplete) {
+    for (let ci = 0; ci < 9; ci++) cells.push([r, ci]);
+  }
+
+  // Check col
+  const colComplete = board.every((row, ri) => row[c] !== 0 && row[c] === solution[ri][c]);
+  if (colComplete) {
+    for (let ri = 0; ri < 9; ri++) {
+      if (!cells.some(([cr, cc]) => cr === ri && cc === c)) cells.push([ri, c]);
+    }
+  }
+
+  // Check box
+  const br = Math.floor(r / 3) * 3;
+  const bc = Math.floor(c / 3) * 3;
+  let boxComplete = true;
+  for (let ri = br; ri < br + 3 && boxComplete; ri++) {
+    for (let ci = bc; ci < bc + 3 && boxComplete; ci++) {
+      if (board[ri][ci] === 0 || board[ri][ci] !== solution[ri][ci]) boxComplete = false;
+    }
+  }
+  if (boxComplete) {
+    for (let ri = br; ri < br + 3; ri++) {
+      for (let ci = bc; ci < bc + 3; ci++) {
+        if (!cells.some(([cr, cc]) => cr === ri && cc === ci)) cells.push([ri, ci]);
+      }
+    }
+  }
+
+  return cells;
+}
+
 function deriveCompletedDigits(board: Board, solution: Board): Set<number> {
   const counts = new Map<number, number>();
   for (let r = 0; r < 9; r++) {
@@ -49,6 +91,8 @@ interface GameState {
   history: UndoMove[]; // session-only undo stack
   conflictCells: Array<[number, number]>;
   completedDigits: Set<number>;
+  lastCorrectCell: [number, number] | null;
+  completedRegionCells: Array<[number, number]>;
 
   // Stats
   streak: number;
@@ -90,6 +134,9 @@ export const useGameStore = create<GameState>()(
       history: [],
       conflictCells: [],
       completedDigits: new Set<number>(),
+
+      lastCorrectCell: null,
+      completedRegionCells: [],
 
       streak: 0,
       lastPlayedDate: null,
@@ -182,6 +229,11 @@ export const useGameStore = create<GameState>()(
           newConflictCells.push([r, c]);
         }
 
+        const isCorrectPlacement = value > 0 && isCorrect;
+        const newCompletedRegionCells = isCorrectPlacement
+          ? deriveCompletedRegionCells(newBoard, solution, r, c)
+          : [];
+
         set({
           board: newBoard,
           notes: newNotes,
@@ -194,10 +246,20 @@ export const useGameStore = create<GameState>()(
           history: newHistory,
           conflictCells: newConflictCells,
           completedDigits: deriveCompletedDigits(newBoard, solution),
+          lastCorrectCell: isCorrectPlacement ? [r, c] : null,
+          completedRegionCells: newCompletedRegionCells,
         });
 
         if (newConflictCells.length > 0) {
           setTimeout(() => set({ conflictCells: [] }), 800);
+        }
+
+        if (isCorrectPlacement) {
+          setTimeout(() => set({ lastCorrectCell: null }), 200);
+        }
+
+        if (newCompletedRegionCells.length > 0) {
+          setTimeout(() => set({ completedRegionCells: [] }), 600);
         }
       },
 

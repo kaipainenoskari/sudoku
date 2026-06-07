@@ -20,7 +20,7 @@ export default function NumberPad() {
     if (isNotesMode && !isHardMode) {
       toggleNote(n);
     } else {
-      placeNumber(n as any);
+      placeNumber(n as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9);
     }
   };
 
@@ -60,9 +60,16 @@ export default function NumberPad() {
   );
 }
 
-function ActionButton({ label, onPress, color }: { label: string; onPress: () => void; color: string }) {
-  const scheme = useColorScheme() ?? 'dark';
-  const C = Colors[scheme];
+function ActionButton({
+  label,
+  onPress,
+  color,
+}: {
+  label: string;
+  onPress: () => void;
+  color: string;
+}) {
+  useColorScheme();
   return (
     <TouchableOpacity onPress={onPress} style={styles.actionButton} activeOpacity={0.7}>
       <Text style={[styles.actionText, { color, fontFamily: Typography.mono }]}>{label}</Text>

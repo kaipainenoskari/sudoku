@@ -1,22 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  useColorScheme,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing } from '../constants/theme';
-import { useGameStore } from '../stores/gameStore';
+import { useGameStore, Board } from '../stores/gameStore';
 import { generatePuzzle, generateDailyPuzzle, Difficulty } from '../packages/engine';
 import SudokuBoard from '../components/SudokuBoard';
 import NumberPad from '../components/NumberPad';
 
 function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
@@ -42,10 +37,12 @@ export default function GameScreen() {
       ? generateDailyPuzzle(new Date())
       : generatePuzzle((difficulty as Difficulty) ?? 'medium');
 
-    newGame(puzzle.board as any, puzzle.solution as any, puzzle.difficulty);
+    newGame(puzzle.board as Board, puzzle.solution as Board, puzzle.difficulty);
 
     timerRef.current = setInterval(() => tick(), 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -71,7 +68,12 @@ export default function GameScreen() {
           {formatTime(elapsedSeconds)}
         </Text>
         {!isHardMode && (
-          <Text style={[styles.mistakes, { color: mistakes > 0 ? C.error : C.textMuted, fontFamily: Typography.mono }]}>
+          <Text
+            style={[
+              styles.mistakes,
+              { color: mistakes > 0 ? C.error : C.textMuted, fontFamily: Typography.mono },
+            ]}
+          >
             {mistakes} err
           </Text>
         )}

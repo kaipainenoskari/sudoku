@@ -40,18 +40,18 @@ function findEmpty(grid: Grid): [number, number] | null {
   return best;
 }
 
-export function solve(grid: Grid, randomise = false): boolean {
+export function solve(grid: Grid, randomise = false, rng: () => number = Math.random): boolean {
   const cell = findEmpty(grid);
   if (!cell) return true; // solved
 
   const [row, col] = cell;
   const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  if (randomise) shuffle(nums);
+  if (randomise) shuffle(nums, rng);
 
   for (const num of nums) {
     if (isValid(grid, row, col, num)) {
       grid[row][col] = num;
-      if (solve(grid, randomise)) return true;
+      if (solve(grid, randomise, rng)) return true;
       grid[row][col] = 0;
     }
   }
@@ -76,9 +76,9 @@ export function countSolutions(grid: Grid, limit = 2): number {
   return count;
 }
 
-function shuffle<T>(arr: T[]): void {
+function shuffle<T>(arr: T[], rng: () => number): void {
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 }

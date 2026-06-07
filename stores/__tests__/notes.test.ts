@@ -53,6 +53,13 @@ function setupGame(notesOverrides: Array<[number, number, number[]]> = []) {
 }
 
 describe('note auto-removal on digit placement', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
   it('placing digit N removes N from notes in the same row', () => {
     // Place notes containing digit 5 in multiple cells on row 0
     setupGame([

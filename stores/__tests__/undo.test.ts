@@ -32,8 +32,12 @@ function startFreshGame(givenOverrides: Array<[number, number, CellValue]> = [])
 
 describe('undo history', () => {
   beforeEach(() => {
-    // Reset to a blank board where every cell is empty (not given) so we can place freely
+    jest.useFakeTimers();
     startFreshGame();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('placing a number can be undone, restoring the previous cell value', () => {
